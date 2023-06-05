@@ -1,5 +1,3 @@
-use surf::{http::convert::json, StatusCode};
-
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum TokenRequestor {
     /// Request method used by seiue frontend.
@@ -18,26 +16,30 @@ pub enum TokenRequestor {
 }
 
 impl TokenRequestor {
-    pub async fn request(&self) -> surf::Result<TokenData> {
+    pub async fn request(&self, client: &reqwest::Client) -> anyhow::Result<TokenData> {
         Ok(match self {
-            TokenRequestor::Cookie { client_id, cookie } => {
-                surf::post("https://passport.seiue.com/authorize")
-                    .body_string(format!("client_id={}&response_type=token", client_id))
-                    .header("Cookie", cookie)
-                    .recv_json::<CookieAuthResponseBody>()
-                    .await?
-                    .into()
-            }
+            TokenRequestor::Cookie { client_id, cookie } => client
+                .post("https://passport.seiue.com/authorize")
+                .body(format!("client_id={}&response_type=token", client_id))
+                .header("Cookie", cookie)
+                .send()
+                .await?
+                .json::<CookieAuthResponseBody>()
+                .await?
+                .into(),
             TokenRequestor::OpenApi {
                 client_id,
                 client_secret,
-            } => surf::post("https://open.seiue.com/api/v3/oauth/tokens")
-                .body_json(&json!({
+            } => client
+                .post("https://open.seiue.com/api/v3/oauth/tokens")
+                .json(&serde_json::json!({
                     "grant_type": "client_credentials",
                     "client_id": client_id,
                     "client_secret": client_secret,
-                }))?
-                .recv_json::<OpenApiAuthResponseBody>()
+                }))
+                .send()
+                .await?
+                .json::<OpenApiAuthResponseBody>()
                 .await?
                 .into(),
         })
@@ -105,34 +107,28 @@ pub struct CookieRequestor {
 
 impl CookieRequestor {
     /// Return cookies.
-    pub async fn request(&self) -> surf::Result<String> {
-        surf::post(format!(
-            "https://passport.seiue.com/login?force=1&school_id={}&type=account",
-            self.school_id
-        ))
-        .body_string(format!(
-            "email={}&password={}&school_id={}&submit=Submit+Query",
-            self.email, self.password, self.school_id
-        ))
-        .await?
-        .header("set-cookie")
-        .map_or_else(
-            || {
-                Err(surf::Error::from_str(
-                    StatusCode::NoContent,
-                    "set-cookie response header not found",
-                ))
-            },
-            |e| {
-                let mut string = String::new();
-                for ee in e.iter() {
-                    string.push_str(ee.as_str());
-                    string.push_str("; ");
-                }
-                string.pop();
-                string.pop();
-                Ok(string)
-            },
-        )
+    pub async fn request(&self, client: &reqwest::Client) -> anyhow::Result<String> {
+        let mut string = String::new();
+        for e in client
+            .post(format!(
+                "https://passport.seiue.com/login?force=1&school_id={}&type=account",
+                self.school_id
+            ))
+            .body(format!(
+                "email={}&password={}&school_id={}&submit=Submit+Query",
+                self.email, self.password, self.school_id
+            ))
+            .send()
+            .await?
+            .headers()
+            .get_all("set-cookie")
+            .iter()
+        {
+            string.push_str(e.to_str()?);
+            string.push_str("; ");
+        }
+        string.pop();
+        string.pop();
+        Ok(string)
     }
 }

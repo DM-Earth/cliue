@@ -1,21 +1,25 @@
 /// Raw task structure from a response.
 #[derive(serde::Deserialize)]
 struct RawTask {
+    #[serde(default)]
     biz_id: String,
+    #[serde(default)]
     biz_tag: String,
     created_at: Option<String>,
+    #[serde(default)]
     domain: String,
-    #[serde(rename = "type")]
+    #[serde(rename = "type", default)]
     enhancer_type: Enhancer,
+    #[serde(default)]
     executor_id: u32,
-    /// yyyy-mm-dd hh:mm:ss
+    // yyyy-mm-dd hh:mm:ss
     expired_at: Option<String>,
     id: u32,
     ignored: bool,
     is_top: bool,
     is_top_sort: u16,
     read: bool,
-    reason: String,
+    reason: Option<String>,
     school_id: u32,
     status: Status,
     title: String,
@@ -29,7 +33,7 @@ struct RawTaskRelated {
     team_id: Option<u32>,
     task_id: u32,
     is_excellent: bool,
-    archived_at: bool,
+    archived_at: Option<String>,
     id: u32,
     school_id: u32,
     creator_id: u32,
@@ -37,9 +41,38 @@ struct RawTaskRelated {
     parent_task_id: Option<u32>,
     overall_task_status: Status,
     title: String,
+    labels: RawTaskLabels,
+    #[serde(default)]
+    content: String,
+    #[serde(default)]
+    attachments: Vec<RawTaskAttackment>,
+    is_team_work: bool,
+    allow_overdue_submit: bool,
+    submit_enabled: bool,
+    expired_at: Option<String>,
+    created_at: String,
+    updated_at: Option<String>,
+    group_id: Option<u32>,
+    biz_id: Option<u32>,
+    expected_take_minites: Option<u32>,
 }
 
-struct RawTaskLabels {}
+#[derive(serde::Deserialize)]
+struct RawTaskLabels {
+    #[serde(rename = "type", default)]
+    enhancer_type: Enhancer,
+}
+
+#[derive(serde::Deserialize)]
+struct RawTaskAttackment {
+    #[serde(default)]
+    created_at: String,
+    hash: String,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    size: usize,
+}
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum Status {
@@ -282,4 +315,13 @@ pub enum Enhancer {
 
     #[serde(rename = "seiue.mentor_role")]
     MentorRole,
+
+    #[serde(rename = "cliue.none")]
+    None,
+}
+
+impl Default for Enhancer {
+    fn default() -> Self {
+        Self::None
+    }
 }
