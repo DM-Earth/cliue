@@ -6,3 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+iced = { version = "0.9", default-features = false, features = [
+  "tokio",
+  "wgpu",
+  "default_system_font",
+] }
+tokio = "1.28"
+cliue-core = { version = "*", path = "../cliue-core" }
