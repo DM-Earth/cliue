@@ -9,7 +9,11 @@ edition = "2021"
 iced = { version = "0.9", default-features = false, features = [
   "tokio",
   "wgpu",
-  "default_system_font",
 ] }
-tokio = "1.28"
+tokio = { version = "*", features = ["fs"] }
 cliue-core = { version = "*", path = "../cliue-core" }
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.7"
+directories = "5.0"
+anyhow = "1.0"
+dark-light = "*"
